@@ -8,7 +8,8 @@ import cors from "cors";
 import { ApolloServer } from "@apollo/server";
 import { InMemoryLRUCache } from "@apollo/utils.keyvaluecache";
 import { expressMiddleware } from "@apollo/server/express4";
-import { buildSchema, Ctx, Field, ObjectType, Query, Resolver } from "type-graphql";
+import { buildSchema, Ctx, Field, FieldResolver, ObjectType, Query, Resolver, Root } from "type-graphql";
+import { randomUUID } from "crypto";
 
 type GraphQLResolverContext = {};
 
@@ -31,6 +32,24 @@ class Customer {
         this.email = email;
         this.firstName = fn;
         this.lastName = ln;
+    }
+}
+
+@ObjectType()
+class Order {
+    @Field(() => String)
+    orderId: string;
+
+    @Field(() => Number)
+    amount: number;
+
+    @Field(() => String)
+    customerId: string;
+
+    constructor(orderId: string, amount: number, customer: Customer) {
+        this.orderId = orderId;
+        this.amount = amount;
+        this.customerId = customer.externalId;
     }
 }
 
@@ -62,6 +81,20 @@ class CustomerResolver {
         ];
 
         return customers;
+    }
+
+    @FieldResolver((_type) => [Order])
+    async orders(
+        @Root() cust: Customer,
+        @Ctx() ctx: GraphQLResolverContext
+    ) {
+        const count = Math.floor(Math.random() * 5);
+        const orders : Array<Order> = [];
+        for (let i=0; i<count; i++) {
+            const o = new Order(randomUUID(), Math.round(Math.random() * 5000 * 100) / 100, cust);
+            orders.push(o);
+        }
+        return orders;
     }
 }
 
