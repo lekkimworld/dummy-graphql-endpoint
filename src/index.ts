@@ -151,7 +151,7 @@ class ShipmentResolver {
         }, new Array<Shipment>())
     }
 
-    @Query((_returns) => Shipment, { nullable: false })
+    @Query((_returns) => Shipment, { nullable: true })
     shipmentById(@Arg("id", () => String, {nullable: false}) id: string, @Ctx() _ctx: GraphQLResolverContext) {
         let result: Shipment|undefined = undefined;
 
@@ -162,6 +162,7 @@ class ShipmentResolver {
             });
             result = r || result;
         });
+        return result;
     }
 
     @FieldResolver((_type) => Account)
@@ -175,7 +176,7 @@ class AccountResolver {@Query((_returns) => [Account], { nullable: false })
     accounts(@Ctx() _ctx: GraphQLResolverContext) {
         return Array.from(accounts.values());
     }
-    @Query((_returns) => Account, { nullable: false })
+    @Query((_returns) => Account, { nullable: true })
     accountById(@Arg("id", () => String, { nullable: false }) id: string, @Ctx() _ctx: GraphQLResolverContext) {
         return accounts.get(id);
     }
