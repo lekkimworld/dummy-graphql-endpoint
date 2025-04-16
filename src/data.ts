@@ -444,12 +444,16 @@ export const getAllContacts = () => {
     return getAll<Contact>(contacts);
 };
 
-// loop the routes to ensure we have shipments across all routes
+
+// keep track
 let routeIdx = 0;
 let equipmentIdx = 0;
+let shipmentCounter = 0;
 export const routes = new Map<string, Array<Route>>();
 export const shipments = new Map<string, Shipment>();
 export const cargo = new Map<string, Array<Cargo>>();
+
+// loop the routes to ensure we have shipments across all routes
 knownRoutes.forEach((knownRoute) => {
     const dates: Array<Array<Date>> = [];
     let startdt = generateRandomDateTime();
@@ -464,7 +468,19 @@ knownRoutes.forEach((knownRoute) => {
         if (Math.random() < 0.4) return;
 
         // account has shipment
-        const shipmentId = generate10DigitId(10);
+        const shipmentId = (() => {
+            shipmentCounter++;
+            if (shipmentCounter < 11) {
+                // generate known shipment id
+                const id = `0000000000${shipmentCounter}`;
+                const idx1 = id.length - 10;
+                const idx2 = idx1 + 10;
+                return id.substring(idx1, idx2);
+            } else {
+                // generate random id
+                return generate10DigitId(10);
+            }
+        })();
         const accountContacts = contacts.get(a.accountId)!;
         const contact = accountContacts[generateRandomNumber(0, accountContacts.length-1)];
         const shipment = new Shipment(shipmentId, a.accountId, contact, knownRoute.legs[0].city1, knownRoute.legs[knownRoute.legs.length - 1].city2);
