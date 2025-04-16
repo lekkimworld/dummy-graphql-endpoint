@@ -1,15 +1,23 @@
 import { Field, Float, ObjectType } from "type-graphql";
-import { approximateFlightTime, approximateRailTime, generateRandomContainerNumber, generateRandomDateTimes } from "./utils";
+import {
+    approximateFlightTime,
+    approximateRailTime,
+    generateRandomContainerNumber,
+    generateRandomDateTimes,
+} from "./utils";
 
 export interface CityPair {
     city1: CityData;
     city2: CityData;
+    hours: number;
+    service: string;
 }
 
 export interface Person {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
 }
 
 @ObjectType()
@@ -37,10 +45,11 @@ export class Coordinates {
         this.latitude = latitude;
         this.longitude = longitude;
     }
-};
+}
 
 export interface CityData {
     cityName: string;
+    portCode: string;
     coordinates: Coordinates;
     isSeaPort: boolean;
     continent: string;
@@ -91,14 +100,33 @@ export class Shipment {
     @Field(() => City)
     end: City;
 
-    constructor(id: string, accountId: string, cities: CityPair) {
-        const start = cities.city1;
-        const end = cities.city2;
+    @Field(() => Boolean)
+    dangerousCargo: boolean = false;
 
+    @Field(() => Boolean)
+    allowPartial: boolean = false;
+
+    @Field(() => Boolean)
+    commodity: boolean = false;
+
+    @Field(() => Boolean)
+    activeReefer: boolean = false;
+
+    @Field(() => String)
+    businessUnit: string = "Some Business Unit";
+
+    @Field(() => String)
+    serviceMode: string = Math.random() < 0.5 ? "CY/CY" : "CY/SD";
+
+    @Field(() => Contact)
+    contact: Contact;
+
+    constructor(id: string, accountId: string, bookedBy: Contact, start: City, end: City) {
         this.shipmentId = id;
         this.accountId = accountId;
-        this.start = new City(start);
-        this.end = new City(end);
+        this.contact = bookedBy;
+        this.start = start;
+        this.end = end;
     }
 }
 
@@ -120,17 +148,13 @@ export class Cargo {
     isPerishable: boolean;
 
     @Field(() => Boolean)
-    isCommodity: boolean;
-
-    @Field(() => Boolean)
     needsElectricity: boolean;
 
-    constructor(equipmentId: string, shipmentId: string, contents: string, perishable: boolean, commodity: boolean, elec: boolean) {
+    constructor(equipmentId: string, shipmentId: string, contents: string, perishable: boolean, elec: boolean) {
         this.equipmentId = equipmentId;
         this.shipmentId = shipmentId;
         this.containerNo = generateRandomContainerNumber();
         this.contents = contents;
-        this.isCommodity = commodity;
         this.isPerishable = perishable;
         this.needsElectricity = elec;
     }
@@ -162,32 +186,24 @@ export class Route {
     @Field(() => String)
     enddt: string;
 
-    constructor(id: string, shipmentId: string, cities: CityPair) {
-        const start = cities.city1;
-        const end = cities.city2;
+    @Field(() => String)
+    service: string;
 
+    constructor(id: string, shipmentId: string, service: string, leg: CityPair, startdt: Date, enddt: Date) {
         this.shipmentId = shipmentId;
         this.routeId = id;
-        this.start = new City(start);
-        this.end = new City(end);
+        this.start = leg.city1;
+        this.end = leg.city2;
+        this.service = service;
 
-        if (start.country == end.country) {
-            this.type = "rail";
-            this.hours = approximateRailTime(start.coordinates, end.coordinates);
-        } else if (start.isSeaPort && end.isSeaPort) {
-            this.type = "sea";
-        } else {
-            this.type = "air";
-            this.hours = approximateFlightTime(start.coordinates, end.coordinates);
-        }
-
-        const dates = generateRandomDateTimes(this.hours);
-        this.startdt = dates[0].toISOString();
-        this.enddt = dates[1].toISOString();
+        this.type = "sea";
+        this.hours = leg.hours;
+        this.startdt = startdt.toISOString();
+        this.enddt = enddt.toISOString();
     }
 
-    public toString() : string {
-        return `[ROUTE id <${this.routeId}> from <${this.start}> to <${this.end}> type <${this.type}>]`;
+    public toString(): string {
+        return `[ROUTE id <${this.routeId}> from <${this.start.cityName}> to <${this.end.cityName}> type <${this.type}> start <${this.startdt}> end <${this.enddt}>]`;
     }
 }
 
@@ -203,16 +219,24 @@ export class Contact {
     email: string;
 
     @Field(() => String)
+    phone: string;
+
+    @Field(() => String)
     firstName: string;
 
     @Field(() => String)
     lastName: string;
 
-    constructor(accountId: string, contactId: string, email: string, fn: string, ln: string) {
+    @Field(() => String)
+    fullname: string;
+
+    constructor(accountId: string, contactId: string, email: string, phone: string, fn: string, ln: string) {
         this.accountId = accountId;
         this.contactId = contactId;
         this.email = email;
+        this.phone = phone;
         this.firstName = fn;
         this.lastName = ln;
+        this.fullname = `${this.firstName} ${this.lastName}`;
     }
 }

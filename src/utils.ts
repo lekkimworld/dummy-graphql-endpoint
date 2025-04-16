@@ -1,5 +1,5 @@
 import {CityData, CityPair, Coordinates, Person} from "./types";
-
+import {faker} from "@faker-js/faker";
 
 const toRadians = (c: Coordinates) : {lonRad: number, latRad: number} => {
     return {lonRad: (Math.PI * c.longitude) / 180, latRad: (Math.PI * c.latitude) / 180};
@@ -56,19 +56,26 @@ export function approximateRailTime(startCoordinates: Coordinates, endCoordinate
     return travelTimeHours;
 }
 
-export function generateRandomDateTimes(addHours: number): Date[] {
-    const startYear = 2023;
+export function generateRandomDateTime(): Date {
+    const startYear = 2020;
     const endYear = 2025;
 
-    const startMillis = new Date(startYear, 0, 1).getTime(); // Start of 2023
+    const startMillis = new Date(startYear, 0, 1).getTime(); // Start of 2020
     const endMillis = new Date(endYear, 0, 1).getTime(); // Start of 2025
 
-    const randomMillis = startMillis + Math.random() * (endMillis - startMillis);
+    const randomMillis = startMillis + Math.ceil(Math.random() * (endMillis - startMillis));
 
-    const d1 = new Date(randomMillis);
+    const d1 = new Date();
+    d1.setTime(randomMillis);
     d1.setSeconds(0);
     d1.setMilliseconds(0);
-    const d2 = new Date(randomMillis + (addHours * 3600000));
+    return d1;
+}
+
+export function generateRandomDateTimes(addHours: number): Date[] {
+    const d1 = generateRandomDateTime();
+    const d2 = new Date()
+    d2.setTime(d1.getTime() + (addHours * 3600000));
     d2.setSeconds(0);
     d2.setMilliseconds(0);
     return [d1, d2];
@@ -86,35 +93,24 @@ export const generateRandomNumber = (min: number, max: number) : number => {
      return length;
 }
 
-function generateRandomName(): string {
-    const characters = "abcdefghijklmnopqrstuvwxyz";
-    let name = "";
-    const length = generateRandomNumber(3, 8);
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        name += characters[randomIndex];
-    }
-    return name.charAt(0).toUpperCase() + name.slice(1);
+const tenDigitIds : string[] = [];
+export const generate10DigitId = (len: number) : string => {
+    let id;
+    do {
+        id = `${BigInt(Math.ceil(Math.random() * Date.now())) * BigInt(Date.now())}`.substring(0, len);
+    } while (tenDigitIds.includes(id))
+        tenDigitIds.push(id);
+    return id;
 }
 
 export const generatePerson = () : Person => {
-    const firstName = generateRandomName();
-    const lastName = generateRandomName();
+    const firstName = faker.person.firstName(Math.random() > 0.5 ? "male" : "female");
+    const lastName = faker.person.lastName();
     const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@example.com`;
+    const phone = faker.phone.number();
     return {
-        firstName, lastName, email
+        firstName, lastName, email, phone
     }
-}
-export function generateRandomCityPair(cities: Array<CityData>): CityPair {
-    let city1 = getRandomCity(cities);
-    let city2 = getRandomCity(cities);
-    while (city1.cityName === city2.cityName) {
-        city2 = getRandomCity(cities);
-    }
-    return {
-        city1: city1,
-        city2: city2,
-    };
 }
 
 export const getRandomCity = (cities: Array<CityData>) : CityData => {
